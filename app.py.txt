@@ -1,0 +1,61 @@
+import streamlit as st
+import requests
+import re
+from deep_translator import GoogleTranslator
+
+# Configurar la página para usar todo el ancho de la pantalla
+st.set_page_config(page_title="Letras de YouTube", layout="wide")
+
+st.title("🎧 YouTube Lyrics & Translation")
+st.write("Pega el enlace de cualquier video musical de YouTube para ver el video y la letra al mismo tiempo.")
+
+# Barra de búsqueda
+url = st.text_input("Enlace de YouTube (Ej: https://www.youtube.com/watch?v=yKNxeF4KMsY):")
+
+if url:
+    try:
+        # 1. Extraer el título del video sin usar claves de API (usando YouTube oEmbed)
+        oembed_url = f"https://www.youtube.com/oembed?url={url}&format=json"
+        respuesta_yt = requests.get(oembed_url).json()
+        titulo_original = respuesta_yt.get("title", "")
+        
+        # Limpiar el título (quitar "Official Video", "(Lyrics)", etc.)
+        titulo_limpio = re.sub(r'(?i)\(official.*?\)|\[.*?\]|\(lyrics.*?\)|\(audio.*?\)|- youtube', '', titulo_original).strip()
+        
+        # Crear 3 columnas: [Video (más ancha)] | [Inglés] | [Español]
+        col_video, col_en, col_es = st.columns([2, 1.5, 1.5])
+        
+        with col_video:
+            st.video(url)
+            st.caption(f"Reproduciendo: {titulo_original}")
+
+        with st.spinner("Buscando y traduciendo la letra completa... (esto puede tomar unos segundos)"):
+            # 2. Buscar la letra original en LRCLIB
+            headers = {"User-Agent": "StreamlitYouTubeLyricsApp/1.0"}
+            res_letra = requests.get(f"https://lrclib.net/api/search?q={titulo_limpio}", headers=headers)
+            datos = res_letra.json()
+            
+            if res_letra.ok and len(datos) > 0 and datos[0].get("plainLyrics"):
+                letra_ingles = datos[0]["plainLyrics"]
+                artista = datos[0]["artistName"]
+                cancion = datos[0]["trackName"]
+                
+                # 3. Traducir la letra completa al español usando Google Translate gratis
+                letra_espanol = GoogleTranslator(source='en', target='es').translate(letra_ingles)
+                
+                with col_en:
+                    st.subheader("Inglés")
+                    st.write(f"**{artista} - {cancion}**")
+                    # Usamos st.text para respetar los saltos de línea de la canción
+                    st.text(letra_ingles)
+                    
+                with col_es:
+                    st.subheader("Español")
+                    st.write(f"**{artista} - {cancion}**")
+                    st.text(letra_espanol)
+            else:
+                with col_en:
+                    st.warning(f"No se encontró la letra exacta en la base de datos para: {titulo_limpio}")
+                    
+    except Exception as e:
+        st.error(f"Ocurrió un error al procesar el enlace. Verifica que sea un enlace válido de YouTube. Detalle: {e}")
