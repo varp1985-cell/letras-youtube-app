@@ -40,8 +40,11 @@ if url:
                 artista = datos[0]["artistName"]
                 cancion = datos[0]["trackName"]
                 
-                # 3. Traducir la letra completa al español usando Google Translate gratis
-                letra_espanol = GoogleTranslator(source='en', target='es').translate(letra_ingles)
+                # 3. Intentar traducir, con manejo de errores si el servidor gratuito se satura
+                try:
+                    letra_espanol = GoogleTranslator(source='en', target='es').translate(letra_ingles)
+                except Exception as e_trad:
+                    letra_espanol = "⚠️ El servidor de traducción gratuito está saturado en este momento o bloqueó la IP de Streamlit. Intenta de nuevo más tarde."
                 
                 with col_en:
                     st.subheader("Inglés")
