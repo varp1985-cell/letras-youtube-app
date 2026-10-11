@@ -9,8 +9,9 @@ st.set_page_config(page_title="Letras de YouTube", layout="wide")
 st.title("🎧 YouTube Lyrics & Translation")
 st.write("Pega el enlace de cualquier video musical de YouTube para ver el video y la letra al mismo tiempo.")
 
-# Barra de búsqueda
-url = st.text_input("Enlace de YouTube (Ej: https://www.youtube.com/watch?v=yKNxeF4KMsY):")
+# Leer si la extensión de Chrome nos está enviando un enlace por la URL
+enlace_por_defecto = st.query_params.get("video", "")
+url = st.text_input("Enlace de YouTube:", value=enlace_por_defecto)
 
 if url:
     try:
